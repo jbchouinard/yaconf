@@ -4,3 +4,4 @@ __pycache__
 pcvenv/
 venv/
 env/
+*.egg-info

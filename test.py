@@ -24,7 +24,7 @@ class AConfig(Config):
 
 
 class SomeConfig(Config):
-    a = Option("a", default=None, type=AConfig)
+    a = Option("a", type=AConfig)
     x = Option("x", default=1, type=int)
     y = Option("y", default="foo", type=str)
 

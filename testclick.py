@@ -10,7 +10,7 @@ class SubConfig(Config):
 class AppConfig(Config):
     x = Option("x", type=int, default=0)
     y = Option("y", type=int, default=0)
-    s = Option("s", type=SubConfig, default=None)
+    s = Option("s", type=SubConfig)
 
 
 @click.command()

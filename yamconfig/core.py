@@ -35,8 +35,15 @@ class Option:
             x = data[key]
         except KeyError as e:
             if self.default is _NO_DEFAULT:
-                raise ConfigError("Missing value for option {!s}".format(key)) from e
-            x = self.default
+                # Let the sub-config handle it's missing values
+                if issubclass(self.type, Config):
+                    x = {}
+                else:
+                    raise ConfigError(
+                        "Missing value for option {!s}".format(key)
+                    ) from e
+            else:
+                x = self.default
         try:
             return self.convert(x)
         except (TypeError, ValueError) as e:
@@ -52,12 +59,12 @@ class Option:
 
 
 class ConfigMeta(type):
-    def __new__(metacls, cls, bases, dct):
-        options = dct.get("_options", {})
-        options.update(metacls.get_options(dct))
-        dct["_options"] = options
-        dct.update(metacls.make_properties(options))
-        return type.__new__(metacls, cls, bases, dct)
+    def __new__(metacls, name, bases, attrs):
+        options = attrs.get("_options", {})
+        options.update(metacls.get_options(attrs))
+        attrs["_options"] = options
+        attrs.update(metacls.make_properties(options))
+        return super().__new__(metacls, name, bases, attrs)
 
     @staticmethod
     def get_options(dct):
