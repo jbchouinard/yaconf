@@ -60,10 +60,9 @@ class Option:
 
 class ConfigMeta(type):
     def __new__(metacls, name, bases, attrs):
-        options = attrs.get("_options", {})
-        options.update(metacls.get_options(attrs))
-        attrs["_options"] = options
-        attrs.update(metacls.make_properties(options))
+        attrs["_options"] = attrs.get("_options", {})
+        attrs["_options"].update(metacls.get_options(attrs))
+        attrs.update(metacls.make_properties(attrs["_options"]))
         return super().__new__(metacls, name, bases, attrs)
 
     @staticmethod
@@ -76,11 +75,10 @@ class ConfigMeta(type):
 
 
 class Config(metaclass=ConfigMeta):
+    _options = {}
+
     def __init__(self, data=None):
-        if data is None:
-            self._data = {}
-        else:
-            self._data = dict(data)
+        self._data = dict(data) if data is not None else {}
 
     def set(self, keys, value):
         if isinstance(keys, str):
@@ -88,17 +86,28 @@ class Config(metaclass=ConfigMeta):
 
         current = self._data
         for k in keys[:-1]:
-            if k not in current:
-                current[k] = {}
+            current[k] = current.get(k, {})
             current = current[k]
         current[keys[-1]] = value
 
+    def _is_config_type(self, value):
+        return isinstance(value, type) and issubclass(value, Config)
+
     def validate(self):
-        for k, v in self._options.items():
-            if isinstance(v.type, Config):
+        for k, opt in self._options.items():
+            v = getattr(self, k)
+            if self._is_config_type(opt.type):
                 v.validate()
+
+    def to_dict(self):
+        d = {}
+        for k, opt in self._options.items():
+            v = getattr(self, k)
+            if self._is_config_type(opt.type):
+                d[k] = v.to_dict()
             else:
-                getattr(self, k)
+                d[k] = v
+        return d
 
     def from_mapping(self, mapping):
         deep_merge(self._data, mapping)
