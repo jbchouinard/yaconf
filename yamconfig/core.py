@@ -101,7 +101,8 @@ class Config(metaclass=ConfigMeta):
             current = current[k]
         current[keys[-1]] = value
 
-    def _is_config_type(self, value):
+    @staticmethod
+    def _is_config_type(value):
         return isinstance(value, type) and issubclass(value, Config)
 
     def validate(self):
@@ -122,6 +123,15 @@ class Config(metaclass=ConfigMeta):
             else:
                 d[k] = v
         return d
+
+    @classmethod
+    def help(cls, indent=""):
+        for k, opt in cls._options.items():
+            if cls._is_config_type(opt.type):
+                print("{}{}:".format(indent, k))
+                opt.type.help(indent + "    ")
+            else:
+                print("{}{}: {}".format(indent, k, str(opt)))
 
     def from_mapping(self, mapping):
         deep_merge(self._data, mapping)
