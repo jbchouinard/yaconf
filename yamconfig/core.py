@@ -8,6 +8,16 @@ class ConfigError(Exception):
     pass
 
 
+class ConfigOptionError(ConfigError):
+    def __init__(self, keys, reason):
+        self.keys = keys
+        self.reason = reason
+        super().__init__("Config option {}: {}".format(".".join(keys), reason))
+
+    def with_key(self, key):
+        return ConfigOptionError((key,) + self.keys, self.reason)
+
+
 _NO_DEFAULT = object()
 
 
@@ -39,20 +49,21 @@ class Option:
                 if issubclass(self.type, Config):
                     x = {}
                 else:
-                    raise ConfigError(
-                        "Missing value for option {!s}".format(key)
-                    ) from e
+                    raise ConfigOptionError((), "missing value") from e
             else:
                 x = self.default
         try:
             return self.convert(x)
         except (TypeError, ValueError) as e:
-            raise ConfigError("Invalid value {!r} for option {!s}".format(x, key))
+            raise ConfigOptionError((), "invalid value {!r}".format(x)) from e
 
     def make_property(self, key):
         @property
         def prop(config):
-            return self.get(key, config._data)
+            try:
+                return self.get(key, config._data)
+            except ConfigOptionError as e:
+                raise e.with_key(key) from e
 
         prop.__doc__ = str(self)
         return prop
@@ -97,7 +108,10 @@ class Config(metaclass=ConfigMeta):
         for k, opt in self._options.items():
             v = getattr(self, k)
             if self._is_config_type(opt.type):
-                v.validate()
+                try:
+                    v.validate()
+                except ConfigOptionError as e:
+                    raise e.with_key(k) from e
 
     def to_dict(self):
         d = {}
