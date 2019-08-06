@@ -1,1 +1,1 @@
-# yaconf - Yet Another Configuration Parser
+# yamconfig - Yet Another Configuration Parser
